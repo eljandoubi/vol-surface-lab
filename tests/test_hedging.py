@@ -59,3 +59,23 @@ def test_summary_standard_errors_scale_with_the_number_of_paths():
     se_small = hedging.summarise(small)["heston_delta"]["mean_standard_error"]
     se_large = hedging.summarise(large)["heston_delta"]["mean_standard_error"]
     assert se_large < se_small
+
+
+def test_paired_std_ratio_covers_the_true_ratio_and_is_exact_for_identical_samples():
+    rng = np.random.default_rng(5)
+    base = rng.normal(size=6000)
+    noise = rng.normal(size=6000)
+    a, b = 1.2 * base, base
+    ratio, lo, hi = hedging.paired_std_ratio(a, b, n_boot=300)
+    assert ratio == pytest.approx(1.2, rel=1e-9)
+    assert lo <= 1.2 <= hi and hi - lo < 1e-6  # perfectly correlated: no sampling spread
+    ratio, lo, hi = hedging.paired_std_ratio(base + 0.5 * noise, base, n_boot=400)
+    expected = np.sqrt(1.25)
+    assert lo < expected < hi and hi - lo < 0.05
+    same = hedging.paired_std_ratio(base, base, n_boot=50)
+    assert same == (1.0, 1.0, 1.0)
+
+
+def test_paired_std_ratio_validates_input():
+    with pytest.raises(ValueError):
+        hedging.paired_std_ratio(np.ones(5), np.ones(6))

@@ -102,3 +102,23 @@ def summarise(result: HedgeResult) -> dict[str, dict[str, float]]:
             "p95_over_premium": float(np.quantile(pnl, 0.95) / result.entry_price),
         }
     return out
+
+
+def paired_std_ratio(a, b, n_boot: int = 1000, seed: int = 0, level: float = 0.95):
+    """Ratio of the standard deviations of two profit-and-loss samples on the same paths.
+
+    The two samples come from the same simulated paths and are strongly correlated, so the paths are
+    resampled together. Returns the ratio ``std(a) / std(b)`` and the percentile interval.
+    """
+    a, b = np.asarray(a, dtype=float), np.asarray(b, dtype=float)
+    if a.shape != b.shape or a.ndim != 1:
+        raise ValueError("need two samples of the same length")
+    rng = np.random.default_rng(seed)
+    n = len(a)
+    ratios = np.empty(n_boot)
+    for i in range(n_boot):
+        idx = rng.integers(0, n, n)
+        ratios[i] = a[idx].std(ddof=1) / b[idx].std(ddof=1)
+    tail = 100 * (1 - level) / 2
+    lo, hi = np.percentile(ratios, [tail, 100 - tail])
+    return float(a.std(ddof=1) / b.std(ddof=1)), float(lo), float(hi)

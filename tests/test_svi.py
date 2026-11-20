@@ -131,3 +131,18 @@ def test_fit_validates_input():
         fit_slice([0.0, 0.1], [0.04, 0.05])
     with pytest.raises(ValueError):
         fit_slice(np.zeros((3, 3)), np.zeros((3, 3)))
+
+
+def test_nearly_straight_smiles_are_fitted_without_errors_and_to_the_noise_level():
+    # A long-dated smile can look like a straight line over the quoted range; the fit must still
+    # return an admissible slice whose vertex stays near the quotes (this used to raise because the
+    # search ran off to a vertex far outside the range).
+    k = np.linspace(-0.35, 0.35, 29)
+    span = k.max() - k.min()
+    for seed in range(12):
+        rng = np.random.default_rng(seed)
+        w = 0.10 + 0.04 * k + rng.normal(0, 2e-4, k.size)
+        fit = fit_slice(k, w)
+        assert fit.slice.is_admissible()
+        assert k.min() - span <= fit.slice.m <= k.max() + span
+        assert fit.rmse < 5e-4

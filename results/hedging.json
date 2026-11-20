@@ -1,0 +1,161 @@
+{
+  "heston": {
+    "v0": 0.04,
+    "kappa": 2.0,
+    "theta": 0.04,
+    "xi": 0.6,
+    "rho": -0.7
+  },
+  "feller_margin": -0.19999999999999998,
+  "days": 30,
+  "paths": 10000,
+  "seed": 0,
+  "frequencies": [
+    {
+      "rebalances_per_day": 1,
+      "entry_price": 2.219917752803468,
+      "entry_implied_vol": 0.1941192772582496,
+      "missing_implied_vol_fraction": 0.05684,
+      "summary": {
+        "none": {
+          "mean_over_premium": 0.003282399029831696,
+          "mean_standard_error": 0.012949897593775538,
+          "std_over_premium": 1.2949897593775537,
+          "std_standard_error": 0.009157418286591711,
+          "p05_over_premium": -2.5769766853373763,
+          "p95_over_premium": 1.0
+        },
+        "bs_entry_vol": {
+          "mean_over_premium": -0.005826902348973273,
+          "mean_standard_error": 0.0026758868342452924,
+          "std_over_premium": 0.26758868342452924,
+          "std_standard_error": 0.001892232340165066,
+          "p05_over_premium": -0.46575456015026356,
+          "p95_over_premium": 0.3861210211077247
+        },
+        "bs_current_vol": {
+          "mean_over_premium": -0.005136626509398659,
+          "mean_standard_error": 0.0025742482338419583,
+          "std_over_premium": 0.25742482338419587,
+          "std_standard_error": 0.0018203594028528476,
+          "p05_over_premium": -0.4541316752054505,
+          "p95_over_premium": 0.3728963012928271
+        },
+        "heston_delta": {
+          "mean_over_premium": -0.006080276249153541,
+          "mean_standard_error": 0.0030258410450408795,
+          "std_over_premium": 0.30258410450408796,
+          "std_standard_error": 0.0021396997094012236,
+          "p05_over_premium": -0.5363991114494947,
+          "p95_over_premium": 0.4236216316176029
+        },
+        "heston_min_variance": {
+          "mean_over_premium": -0.00413147746870989,
+          "mean_standard_error": 0.0024040865342028097,
+          "std_over_premium": 0.24040865342028098,
+          "std_standard_error": 0.0017000308945639446,
+          "p05_over_premium": -0.4196445662669366,
+          "p95_over_premium": 0.3610456834427405
+        }
+      },
+      "std_ratio_to_heston_min_variance": {
+        "none": {
+          "std_over_reference": 5.386618746679058,
+          "ci95_low": 5.2526404033313945,
+          "ci95_high": 5.528778069609655
+        },
+        "bs_entry_vol": {
+          "std_over_reference": 1.1130576192560435,
+          "ci95_low": 1.1004813431908338,
+          "ci95_high": 1.125190799103886
+        },
+        "bs_current_vol": {
+          "std_over_reference": 1.0707801891563666,
+          "ci95_low": 1.064660811602356,
+          "ci95_high": 1.0773033966283119
+        },
+        "heston_delta": {
+          "std_over_reference": 1.2586240145653669,
+          "ci95_low": 1.2459543767866732,
+          "ci95_high": 1.2723462209742897
+        }
+      },
+      "seconds": 50.8
+    },
+    {
+      "rebalances_per_day": 4,
+      "entry_price": 2.219917752803468,
+      "entry_implied_vol": 0.1941192772582496,
+      "missing_implied_vol_fraction": 0.07049666666666665,
+      "summary": {
+        "none": {
+          "mean_over_premium": 0.015973596073404053,
+          "mean_standard_error": 0.012764920305662538,
+          "std_over_premium": 1.2764920305662537,
+          "std_standard_error": 0.009026613051376236,
+          "p05_over_premium": -2.5518106184750304,
+          "p95_over_premium": 1.0
+        },
+        "bs_entry_vol": {
+          "mean_over_premium": -0.002479836215536872,
+          "mean_standard_error": 0.002220671308539919,
+          "std_over_premium": 0.2220671308539919,
+          "std_standard_error": 0.0015703302595309683,
+          "p05_over_premium": -0.3808745474673459,
+          "p95_over_premium": 0.34043561153116536
+        },
+        "bs_current_vol": {
+          "mean_over_premium": -0.002174522483784705,
+          "mean_standard_error": 0.0021330535275850774,
+          "std_over_premium": 0.21330535275850773,
+          "std_standard_error": 0.0015083720344765776,
+          "p05_over_premium": -0.3674361624197153,
+          "p95_over_premium": 0.3252261385054088
+        },
+        "heston_delta": {
+          "mean_over_premium": -0.0025461586121479376,
+          "mean_standard_error": 0.002627802620442919,
+          "std_over_premium": 0.26278026204429195,
+          "std_standard_error": 0.001858229966356189,
+          "p05_over_premium": -0.4533699025000357,
+          "p95_over_premium": 0.39120761475800575
+        },
+        "heston_min_variance": {
+          "mean_over_premium": -0.0017565962377436748,
+          "mean_standard_error": 0.001947953011599973,
+          "std_over_premium": 0.19479530115999732,
+          "std_standard_error": 0.001377479659640016,
+          "p05_over_premium": -0.3350201049832357,
+          "p95_over_premium": 0.3045583453101683
+        }
+      },
+      "std_ratio_to_heston_min_variance": {
+        "none": {
+          "std_over_reference": 6.552991899521194,
+          "ci95_low": 6.4077456467482286,
+          "ci95_high": 6.712974241444152
+        },
+        "bs_entry_vol": {
+          "std_over_reference": 1.1400025027892977,
+          "ci95_low": 1.1278192255924877,
+          "ci95_high": 1.1533729400607489
+        },
+        "bs_current_vol": {
+          "std_over_reference": 1.0950230908460516,
+          "ci95_low": 1.0877678174582235,
+          "ci95_high": 1.1023494784340122
+        },
+        "heston_delta": {
+          "std_over_reference": 1.3490071910330856,
+          "ci95_low": 1.3345622351433628,
+          "ci95_high": 1.364261619394391
+        }
+      },
+      "seconds": 176.0
+    }
+  ],
+  "versions": {
+    "numpy": "2.5.5",
+    "scipy": "1.18.1"
+  }
+}

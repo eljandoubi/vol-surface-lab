@@ -92,3 +92,47 @@ def test_unsorted_quotes_are_accepted():
     slices = [(t, _slice_for(t)) for t in (0.5, 0.1, 1.0)]
     surface, _ = fit_surface(_quotes(slices))
     np.testing.assert_allclose(surface.times, [0.1, 0.5, 1.0])
+
+
+def test_fit_errors_are_reported_against_the_original_quotes():
+    rng = np.random.default_rng(2)
+    truth = _slice_for(0.25)
+    noisy = [
+        SliceQuotes(t, K, truth.total_variance(K) + rng.normal(0, 6e-4, K.size))
+        for t in (0.25, 0.30)
+    ]
+    surface, fits = fit_surface(noisy)
+    for quote, fit, fitted in zip(noisy, fits, surface.slices, strict=True):
+        error = fitted.total_variance(quote.k) - quote.w
+        assert fit.rmse == pytest.approx(np.sqrt(np.mean(error**2)))
+        assert fit.max_abs_error == pytest.approx(np.max(np.abs(error)))
+
+
+def test_a_crossing_beyond_the_quotes_is_repaired_only_on_an_explicit_wider_grid():
+    early = SviSlice(a=0.01, b=0.12, rho=-0.3, m=0.0, sigma=0.1)
+    late = SviSlice(a=0.04, b=0.05, rho=-0.3, m=0.0, sigma=0.15)
+    k = np.linspace(-0.3, 0.3, 13)  # both slices are ordered here and cross near -0.33 and 0.6
+    quotes = [
+        SliceQuotes(0.25, k, early.total_variance(k)),
+        SliceQuotes(0.5, k, late.total_variance(k)),
+    ]
+    quoted, wide = np.linspace(-0.3, 0.3, 121), np.linspace(-1.0, 1.0, 401)
+
+    default, _ = fit_surface(quotes)
+    assert default.calendar_violations(quoted, tol=1e-6) == []
+    assert default.calendar_violations(wide, tol=1e-6)  # nothing constrains the wings
+
+    repaired, _ = fit_surface(quotes, k_grid=wide)
+    assert repaired.calendar_violations(wide, tol=1e-6) == []
+    relative = np.abs(repaired.slices[1].total_variance(k) - late.total_variance(k))
+    assert (relative / late.total_variance(k)).max() < 0.1  # paid for with a few percent
+
+
+def test_expiries_that_quote_disjoint_ranges_are_fitted_without_a_repair():
+    low, high = np.linspace(-0.4, -0.1, 9), np.linspace(0.1, 0.4, 9)
+    quotes = [
+        SliceQuotes(0.25, low, _slice_for(0.25).total_variance(low)),
+        SliceQuotes(0.5, high, _slice_for(0.5).total_variance(high)),
+    ]
+    surface, fits = fit_surface(quotes)
+    assert len(fits) == 2 and max(f.max_abs_error for f in fits) < 1e-6

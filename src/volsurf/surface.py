@@ -1,10 +1,12 @@
 """A volatility surface made of SVI slices, with calendar-spread repair and time interpolation.
 
 Slices are fitted expiry by expiry. A fitted slice must not fall below the previous one at any
-log-moneyness (otherwise a calendar spread would have negative value); when it does, the offending
-quotes are raised to the previous slice and the slice is fitted again. Between expiries the total
-variance is interpolated linearly in time at fixed log-moneyness, which keeps the surface free of
-calendar arbitrage whenever the slices are.
+log-moneyness (otherwise a calendar spread would have negative value). When it does, the slice is
+fitted again with one more pseudo-quote at the worst violating point, equal to the previous slice
+there, and this is repeated until the violation is gone. Raising the real quotes would not do: a
+violation between or beyond the quotes does not move when the quotes move. Between expiries the
+total variance is interpolated linearly in time at fixed log-moneyness, which keeps the surface
+free of calendar arbitrage whenever the slices are.
 """
 
 from __future__ import annotations
@@ -13,7 +15,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .svi import SviSlice, butterfly_violations, fit_slice
+from .svi import SviFit, SviSlice, butterfly_violations, fit_slice
 
 
 @dataclass(frozen=True)
@@ -69,26 +71,51 @@ class Surface:
         return found
 
 
-def fit_surface(quotes, k_grid=None, repair_calendar=True, max_repairs=8, **fit_kwargs):
-    """Fit a surface to quotes sorted or unsorted by expiry; returns the surface and the fits."""
+def _quoted_overlap(k_early, k_late, n=201):
+    """Grid over the range both expiries quote, or None when the ranges do not overlap."""
+    low, high = max(k_early.min(), k_late.min()), min(k_early.max(), k_late.max())
+    return np.linspace(low, high, n) if high > low else None
+
+
+def fit_surface(quotes, k_grid=None, repair_calendar=True, max_repairs=12, **fit_kwargs):
+    """Fit a surface to quotes sorted or unsorted by expiry; returns the surface and the fits.
+
+    Calendar spreads are checked on ``k_grid``; by default on the range quoted for both expiries of
+    each consecutive pair, because outside it a slice is an extrapolation that no data constrains.
+    A violation is repaired by raising the quotes that lie below the previous slice and by adding
+    a heavy pseudo-quote at the worst violating point (a violation between or beyond the quotes
+    does not move when the quotes move). The errors stored in each fit are measured against the
+    original quotes.
+    """
     quotes = sorted(quotes, key=lambda q: q.t)
-    if k_grid is None:
-        low = min(q.k.min() for q in quotes)
-        high = max(q.k.max() for q in quotes)
-        k_grid = np.linspace(low - 0.2, high + 0.2, 401)
+    fixed_grid = None if k_grid is None else np.asarray(k_grid, dtype=float)
     fits = []
-    for quote in quotes:
-        w = np.asarray(quote.w, dtype=float).copy()
-        fit = fit_slice(quote.k, w, **fit_kwargs)
+    for i, quote in enumerate(quotes):
+        kwargs = dict(fit_kwargs)
+        k_real = np.asarray(quote.k, dtype=float)
+        n = len(k_real)
+        w_fit = np.asarray(quote.w, dtype=float).copy()
+        k_fit = k_real.copy()
+        weights = np.asarray(kwargs.pop("weights", np.ones(n)), dtype=float)
+        fit = fit_slice(k_fit, w_fit, weights=weights, **kwargs)
+        grid = fixed_grid
         if repair_calendar and fits:
+            if grid is None:
+                grid = _quoted_overlap(np.asarray(quotes[i - 1].k), k_real)
             previous = fits[-1].slice
-            for _ in range(max_repairs):
-                gap = fit.slice.total_variance(k_grid) - previous.total_variance(k_grid)
-                if gap.min() >= -1e-10:
+            for step in range(max_repairs if grid is not None else 0):
+                gap = fit.slice.total_variance(grid) - previous.total_variance(grid)
+                worst = int(np.argmin(gap))
+                if gap[worst] >= -1e-10:
                     break
-                floor = previous.total_variance(quote.k) + 1e-6
-                w = np.maximum(w, floor)
-                fit = fit_slice(quote.k, w, **fit_kwargs)
-        fits.append(fit)
+                w_fit[:n] = np.maximum(w_fit[:n], previous.total_variance(k_real) + 1e-6)
+                k_fit = np.append(k_fit, grid[worst])
+                w_fit = np.append(w_fit, previous.total_variance(grid[worst]) + 1e-6)
+                weights = np.append(weights, 10.0 * 2.0**step)
+                fit = fit_slice(k_fit, w_fit, weights=weights, **kwargs)
+        error = fit.slice.total_variance(k_real) - quote.w
+        fits.append(
+            SviFit(fit.slice, float(np.sqrt(np.mean(error**2))), float(np.max(np.abs(error))))
+        )
     surface = Surface([(q.t, f.slice) for q, f in zip(quotes, fits, strict=True)])
     return surface, fits

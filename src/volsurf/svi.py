@@ -93,6 +93,11 @@ def _linear_core(k, w, weights, m, sigma):
     a, d, c = coef
     c = max(c, 1e-10)
     d = float(np.clip(d, -0.999 * c, 0.999 * c))
+    shrink = (
+        2.0 * sigma / (c + abs(d))
+    )  # Lee's bound b * (1 + |rho|) <= 2 reads c + |d| <= 2 * sigma
+    if shrink < 1.0:
+        c, d = c * shrink, d * shrink
     a = max(a, -np.sqrt(c**2 - d**2))
     residual = (w - (a + d * y + c * design[:, 2])) * sqrt_w
     return a, d, c, float(residual @ residual)
@@ -102,13 +107,15 @@ def _to_slice(a, d, c, m, sigma):
     return SviSlice(a=a, b=c / sigma, rho=d / c, m=m, sigma=sigma)
 
 
-def _lift_to_nonnegative(s: SviSlice) -> SviSlice:
-    """Raise ``a`` just enough that the smallest total variance is not below zero.
+def _make_admissible(s: SviSlice) -> SviSlice:
+    """Enforce Lee's bound and a non-negative minimum exactly.
 
-    The polishing step only penalises a negative minimum, so it may stop a hair under zero.
+    The polishing step only penalises both, so it may stop a hair outside. Lowering ``b`` raises
+    the floor of ``a``, so the offset is lifted after the bound is applied.
     """
-    floor = -s.b * s.sigma * np.sqrt(1.0 - s.rho**2)
-    return s if s.a >= floor else SviSlice(floor, s.b, s.rho, s.m, s.sigma)
+    b = min(s.b, 2.0 / (1.0 + abs(s.rho)))
+    floor = -b * s.sigma * np.sqrt(1.0 - s.rho**2)
+    return SviSlice(max(s.a, floor), b, s.rho, s.m, s.sigma)
 
 
 def fit_slice(k, w, weights=None, n_starts=6, seed=0) -> SviFit:
@@ -129,7 +136,7 @@ def fit_slice(k, w, weights=None, n_starts=6, seed=0) -> SviFit:
         without this the search can run off to an arbitrarily distant vertex.
         """
         m = float(np.clip(theta[0], m_low, m_high))
-        return m, float(np.clip(np.exp(theta[1]), sigma_low, sigma_high))
+        return m, float(np.exp(np.clip(theta[1], np.log(sigma_low), np.log(sigma_high))))
 
     def objective(theta):
         m, sigma = inside_box(theta)
@@ -163,8 +170,9 @@ def fit_slice(k, w, weights=None, n_starts=6, seed=0) -> SviFit:
 
     def residuals(theta):
         trial = SviSlice(*theta)
-        penalty = 1e3 * max(-trial.minimum_total_variance, 0.0)
-        return np.append((trial.total_variance(k) - w) * sqrt_w, penalty)
+        negative = 1e3 * max(-trial.minimum_total_variance, 0.0)
+        steep = 1e3 * max(trial.b * (1.0 + abs(trial.rho)) - 2.0, 0.0)
+        return np.append((trial.total_variance(k) - w) * sqrt_w, [negative, steep])
 
     # rho = d / c can exceed 0.999 by one unit in the last place after the clipping in _linear_core
     lower = np.array([-np.inf, 0.0, -0.999, m_low, 1e-6])
@@ -174,7 +182,7 @@ def fit_slice(k, w, weights=None, n_starts=6, seed=0) -> SviFit:
     final = SviSlice(*polished.x)
     if np.sum(residuals(polished.x) ** 2) > np.sum(residuals(theta0) ** 2):
         final = start
-    final = _lift_to_nonnegative(final)
+    final = _make_admissible(final)
     error = final.total_variance(k) - w
     return SviFit(final, float(np.sqrt(np.mean(error**2))), float(np.max(np.abs(error))))
 

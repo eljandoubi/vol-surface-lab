@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from volsurf import bs
+from volsurf.heston import HestonParams, implied_vols
 from volsurf.svi import SviSlice, butterfly_violations, fit_slice
 
 BENIGN = SviSlice(a=0.02, b=0.25, rho=-0.4, m=0.03, sigma=0.2)
@@ -143,6 +144,27 @@ def test_nearly_straight_smiles_are_fitted_without_errors_and_to_the_noise_level
         rng = np.random.default_rng(seed)
         w = 0.10 + 0.04 * k + rng.normal(0, 2e-4, k.size)
         fit = fit_slice(k, w)
-        assert fit.slice.is_admissible()
+        assert fit.slice.is_admissible() and fit.slice.satisfies_lee_bound()
         assert k.min() - span <= fit.slice.m <= k.max() + span
         assert fit.rmse < 5e-4
+
+
+def test_fit_keeps_lees_bound_on_a_noisy_one_month_heston_smile():
+    # With this noise the quotes sit on one side of a vertex, and an unconstrained fit chose
+    # b = 16 and rho = 0.999 there: a good match at the quotes and a wing slope of 32 beyond them.
+    params = HestonParams(v0=0.04, kappa=1.5, theta=0.05, xi=0.5, rho=-0.7)
+    t = 1 / 12
+    k = np.linspace(-2.5, 2.5, 29) * 0.22 * np.sqrt(t)
+    vols = implied_vols(1.0, np.exp(k), t, params)
+    noisy = vols + np.random.default_rng(12).normal(0.0, 0.003, vols.shape)
+    fit = fit_slice(k, noisy**2 * t)
+    assert fit.slice.satisfies_lee_bound() and fit.slice.is_admissible()
+    assert fit.rmse < 2e-4  # total variance; the quote noise alone is about 1e-4
+
+
+def test_lees_bound_is_exact_even_when_the_data_ask_for_steeper_wings():
+    k = np.linspace(-0.3, 0.3, 21)
+    w = 0.05 + 3.0 * np.abs(k)  # slope 3 on both sides, above the limit of 2
+    fit = fit_slice(k, w)
+    assert fit.slice.satisfies_lee_bound() and fit.slice.is_admissible()
+    assert fit.slice.b * (1 + abs(fit.slice.rho)) <= 2.0 + 1e-12

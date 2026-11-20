@@ -1,0 +1,73 @@
+{
+  "heston": {
+    "v0": 0.04,
+    "kappa": 1.5,
+    "theta": 0.05,
+    "xi": 0.5,
+    "rho": -0.7
+  },
+  "expiries": [
+    0.08333333333333333,
+    0.25,
+    0.5,
+    1.0,
+    2.0
+  ],
+  "quotes_per_expiry": 29,
+  "quote_range_standard_deviations": [
+    -2.5,
+    2.5
+  ],
+  "noise_vol_points": 0.3,
+  "clean": {
+    "rmse_vol_points_per_expiry": [
+      0.028590673558438442,
+      0.05553526401813992,
+      0.049232465752646906,
+      0.02181515841846401,
+      0.0017013680813791874
+    ],
+    "max_abs_error_vol_points": 0.09856882009188217,
+    "calendar_pairs_violated_quoted": 0,
+    "calendar_pairs_violated_near": 0,
+    "calendar_pairs_violated_wide": 0,
+    "expiries_with_butterfly_violation_near": 0,
+    "expiries_with_butterfly_violation_wide": 0
+  },
+  "noisy": {
+    "quote_noise_rmse_vol_points": 0.29334062867781363,
+    "seeds": 20,
+    "raw": {
+      "rmse_vs_truth_vol_points_mean": 0.12848052578007424,
+      "rmse_vs_truth_vol_points_worst_run": 0.15173072548818925,
+      "runs_with_calendar_pairs_violated_quoted": 0,
+      "runs_with_calendar_pairs_violated_near": 5,
+      "runs_with_calendar_pairs_violated_wide": 9,
+      "runs_with_expiries_with_butterfly_violation_near": 2,
+      "runs_with_expiries_with_butterfly_violation_wide": 2
+    },
+    "repaired": {
+      "rmse_vs_truth_vol_points_mean": 0.12848052578007424,
+      "rmse_vs_truth_vol_points_worst_run": 0.15173072548818925,
+      "runs_with_calendar_pairs_violated_quoted": 0,
+      "runs_with_calendar_pairs_violated_near": 5,
+      "runs_with_calendar_pairs_violated_wide": 9,
+      "runs_with_expiries_with_butterfly_violation_near": 2,
+      "runs_with_expiries_with_butterfly_violation_wide": 2
+    },
+    "repaired_wide": {
+      "rmse_vs_truth_vol_points_mean": 1.0349163755101516,
+      "rmse_vs_truth_vol_points_worst_run": 18.215308640407173,
+      "runs_with_calendar_pairs_violated_quoted": 1,
+      "runs_with_calendar_pairs_violated_near": 1,
+      "runs_with_calendar_pairs_violated_wide": 0,
+      "runs_with_expiries_with_butterfly_violation_near": 2,
+      "runs_with_expiries_with_butterfly_violation_wide": 2
+    }
+  },
+  "versions": {
+    "numpy": "2.5.5",
+    "scipy": "1.18.1"
+  },
+  "seconds": 43.8
+}
